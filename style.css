@@ -1,0 +1,57 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #000;
+    margin: 0;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+}
+.score {
+    width: 100%;
+    font-family: Consolas, monospace;
+    font-weight: bold;
+    font-size: 1.5em;
+    color: white;
+    text-align: center;
+    margin-top: -5px;
+}
+canvas {
+    background-color: #eee;
+    border: 1px solid #ffffff;
+}
+.controls {
+    display: flex;
+    justify-content: space-between;
+
+    height: 5vh;
+}
+.controls button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 27%;
+    background: none;
+    color: white;
+    border: solid 1px #ffffff;
+    border-radius: 9px;
+    font-size: 1.5em;
+    font-weight: bolder;
+}
+#down,#drop,#rotate{
+    width: 15%;
+    border-radius: 50px;
+}
+button:active{
+    background-color: #ffffff;
+    color: #000;
+}
+#right,#left,#drop{
+    font-size: 1.5em;
+}
