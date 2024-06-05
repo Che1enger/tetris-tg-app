@@ -9,7 +9,7 @@
 <body>
     <div>
         <div class="score">Score: <span id="score">0</span></div>
-        <canvas id="tetris" width="240" height="400"></canvas>
+        <canvas id="tetris" width="320" height="460"></canvas>
         <div class="controls">
             <button id="left">←</button>
             <button id="down">D</button>
@@ -290,7 +290,7 @@
             dropCounter = 0;
         }
 
-        const arena = createMatrix(12, 20);
+        const arena = createMatrix(16, 23);
 
         const player = {
             pos: {x: 0, y: 0},
