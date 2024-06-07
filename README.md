@@ -34,8 +34,7 @@ The game can be controlled using both the keyboard and the on-screen buttons. Th
 - **index.html**: The main HTML file containing the game structure, canva and game logic.
 
 ## Screenshot
-![Game Screenshot](![image](https://github.com/Che1enger/tetris-tg-app/assets/128822478/b5780386-b34a-4460-80fc-fbb8671ae987)
-)
+![Game Screenshot](![image](https://github.com/Che1enger/tetris-tg-app/assets/128822478/b86d8c5b-e01d-4af3-ad4f-45d2218d4029)
 
 ## Contact
 For any inquiries or support, please reach out to me on [Telegram](@ivansynenko).
