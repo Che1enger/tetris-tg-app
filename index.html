@@ -16,12 +16,17 @@
             height: 100vh;
 
         }
+        .main{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: -100px;
+
+        }
         #score {
-            position: absolute;
             width: 100%;
             display: flex;
             justify-content: center;
-            top: 90px;
             color: white;
             background-color: rgb(0, 0, 0);
             font-family: Arial, sans-serif;
@@ -29,27 +34,25 @@
             z-index: 100;
         }
         #gameContainer {
-            position: absolute;
-            width: 100%;
-            height: 100vh;
-            top: -45px;
+            width: 100vw;
+            height: 70vh;
             z-index: -1;
+
         }
         canvas {
             display: block;
         }
         .controls {
-            width: 267px;
-            margin-top: 440px;
+            width: 100vw;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             height: 10vh;
         }
         .controls button {
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 20%;
+            width: 75px;
             background: none;
             color: white;
             border: solid 1px #ffffff;
@@ -59,7 +62,6 @@
             z-index: 100;
         }
         #down,#drop,#rotate{
-            width: 20%;
             border-radius: 50px;
         }
         button:active{
@@ -69,11 +71,13 @@
         #right,#left,#drop{
             font-size: 1.5em;
         }
+        
     </style>
 </head>
 <body>
-    <div id="score">Score: <span id="scoreValue">0</span></div>
-    <div id="gameContainer"></div>
+    <div class="main">
+        <div id="score">Score: <span id="scoreValue">0</span></div>
+        <div id="gameContainer"></div>
         <div class="controls">
             <button id="left">←</button>
             <button id="down">D</button>
@@ -81,6 +85,8 @@
             <button id="rotate">R</button>
             <button id="right">→</button>
         </div>
+    </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer;
@@ -92,9 +98,9 @@
         let currentBlocks = [];
         let fallenBlocks = [];
 
-        const width = 10;
-        const height = 15;
-        const depth = 10;
+        const width = 12;
+        const height = 20;
+        const depth = 12;
         const sides = 4;
 
         function init() {
