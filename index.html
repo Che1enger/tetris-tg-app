@@ -113,7 +113,7 @@
 
             // Create the parallelepiped
             const geometry = new THREE.BoxGeometry(width, height, depth);  
-            const material = new THREE.MeshBasicMaterial({ color: "#ffffff", wireframe: true });
+            const material = new THREE.MeshBasicMaterial({ color: "#FFFFFF", wireframe: true });
             const parallelepiped = new THREE.Mesh(geometry, material);
             scene.add(parallelepiped);
             
@@ -339,8 +339,22 @@
                         player.pos.x -= dir;
                     }
                 }
+                rotateParallelepiped(dir);
             }
         }
+
+        function rotateParallelepiped(dir) {
+            const rotationAngle = Math.PI / 2; // 90 degrees
+            const rotationAxis = new THREE.Vector3(1, 0, 0); // Rotate around X axis
+            const rotateMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, dir * rotationAngle);
+
+            parallelepiped.applyMatrix4(rotateMatrix);
+
+            // Adjust camera position after rotation
+            updateCameraPosition();
+        }
+
+
 
         function playerDrop() {
             player.pos.y++;
@@ -403,7 +417,7 @@
             player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
             player.pos.y = 0;
             player.pos.x = (width / 2 | 0) - (player.matrix[0].length / 2 | 0);
-            player.pos.side = 0;
+        
             if (collide(arenas[player.pos.side], player)) {
                 arenas.forEach(arena => arena.forEach(row => row.fill(0)));
                 fallenBlocks.forEach(block => scene.remove(block));
@@ -412,6 +426,7 @@
                 updateScore();
             }
         }
+
 
         function arenaSweep() {
     let fullRows = [];
