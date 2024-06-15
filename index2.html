@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris on a Parallelepiped</title>
+    <style>
+        body {
+            overflow-x: hidden;
+            overflow-y: hidden;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgb(0, 0, 0);
+            height: 100vh;
+
+        }
+        .main{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: -100px;
+
+        }
+        #score {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            color: white;
+            background-color: rgb(0, 0, 0);
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            z-index: 100;
+        }
+        #gameContainer {
+            width: 100vw;
+            height: 70vh;
+            z-index: -1;
+
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            height: 10vh;
+        }
+        .controls button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 75px;
+            background: none;
+            color: white;
+            border: solid 1px #ffffff;
+            border-radius: 9px;
+            font-size: 1.5em;
+            font-weight: bolder;
+            z-index: 100;
+        }
+        #down,#drop,#rotate{
+            border-radius: 50px;
+        }
+        button:active{
+            background-color: #ffffff;
+            color: #000;
+        }
+        #right,#left,#drop{
+            font-size: 1.5em;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="main">
+        <div id="score">Score: <span id="scoreValue">0</span></div>
+        <div id="gameContainer"></div>
+        <div class="controls">
+            <button id="left">←</button>
+            <button id="down">D</button>
+            <button id="drop">↓</button>
+            <button id="rotate">R</button>
+            <button id="right">→</button>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let player;
+        let arenas = [];
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+        let currentBlocks = [];
+        let fallenBlocks = [];
+
+        const width = 12;
+        const height = 20;
+        const depth = 12;
+        const sides = 4;
+
+        function init() {
+            const container = document.getElementById('gameContainer');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.9, 2000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Create the parallelepiped
+            const geometry = new THREE.BoxGeometry(width, height, depth);  
+            const material = new THREE.MeshBasicMaterial({ color: "#FFFFFF", wireframe: true });
+            const parallelepiped = new THREE.Mesh(geometry, material);
+            scene.add(parallelepiped);
+            
+            // Create arenas for each side
+            for (let i = 0; i < sides; i++) {
+                arenas.push(createArena(width, height));
+            }
+
+            camera.position.z = 50;
+
+            player = {
+                pos: { x: 0, y: 0, side: 0 },
+                matrix: createPiece('T'),
+                color: getRandomColor(),
+                score: 0
+            };
+
+            document.addEventListener('keydown', event => {
+                if (event.keyCode === 37) { // Left
+                    playerMove(-1);
+                } else if (event.keyCode === 39) { // Right
+                    playerMove(1);
+                } else if (event.keyCode === 40) { // Down
+                    playerDrop();
+                } else if (event.keyCode === 38) { // Rotate
+                    playerRotate(1);
+                } else if (event.keyCode === 32) { // Space bar for instant drop
+                    instantDrop();
+                }
+            });
+
+
+            document.getElementById('left').addEventListener('click', () => {
+                playerMove(-1);
+            });
+
+            document.getElementById('right').addEventListener('click', () => {
+                playerMove(1);
+            });
+
+            document.getElementById('drop').addEventListener('click', () => {
+                instantDrop();
+            });
+
+            document.getElementById('down').addEventListener('click', () => {
+                playerDrop();
+            });
+
+            document.getElementById('rotate').addEventListener('click', () => {
+                playerRotate(1);
+            });
+
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            update();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('gameContainer');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function createArena(width, height) {
+            const arena = [];
+            while (height--) {
+                arena.push(new Array(width).fill(0));
+            }
+            return arena;
+        }
+
+        function createPiece(type) {
+            if (type === 'T') {
+                return [
+                    [0, 1, 0],
+                    [1, 1, 1],
+                    [0, 0, 0],
+                ];
+            } else if (type === 'O') {
+                return [
+                    [1, 1],
+                    [1, 1],
+                ];
+            } else if (type === 'L') {
+                return [
+                    [0, 0, 1],
+                    [1, 1, 1],
+                    [0, 0, 0],
+                ];
+            } else if (type === 'J') {
+                return [
+                    [1, 0, 0],
+                    [1, 1, 1],
+                    [0, 0, 0],
+                ];
+            } else if (type === 'I') {
+                return [
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 1, 0, 0],
+                ];
+            } else if (type === 'S') {
+                return [
+                    [0, 1, 1],
+                    [1, 1, 0],
+                    [0, 0, 0],
+                ];
+            } else if (type === 'Z') {
+                return [
+                    [1, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 0],
+                ];
+            }
+        }
+
+        function drawMatrix(matrix, offset, color) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        drawBlock(x + offset.x, y + offset.y, player.pos.side, color);
+                    }
+                });
+            });
+        }
+
+        function drawBlock(x, y, side, color) {
+            const blockSize = 0.9;
+            const geometry = new THREE.BoxGeometry(blockSize, blockSize, 0.1);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const cube = new THREE.Mesh(geometry, material);
+
+            const halfHeight = height / 2;
+            const halfWidth = width / 2;
+            const halfDepth = depth / 2;
+
+            // Calculate positions based on side
+            if (side === 0) { // Front
+                cube.position.set(x - halfWidth + 0.5, halfHeight - y - 0.5, halfDepth);
+            } else if (side === 1) { // Right
+                cube.position.set(halfWidth, halfHeight - y - 0.5, halfDepth - x - 0.5);
+                cube.rotation.y = -Math.PI / 2;
+            } else if (side === 2) { // Back
+                cube.position.set(halfWidth - x - 0.5, halfHeight - y - 0.5, -halfDepth);
+                cube.rotation.y = Math.PI;
+            } else if (side === 3) { // Left
+                cube.position.set(-halfWidth, halfHeight - y - 0.5, x - halfDepth + 0.5);
+                cube.rotation.y = Math.PI / 2;
+            }
+
+            scene.add(cube);
+            currentBlocks.push(cube);
+        }
+
+        function clearCurrentBlocks() {
+            currentBlocks.forEach(block => {
+                scene.remove(block);
+                block.geometry.dispose();
+                block.material.dispose();
+            });
+            currentBlocks = [];
+        }
+
+
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        arena[y + player.pos.y][x + player.pos.x] = value;
+                        const block = createBlock(x + player.pos.x, y + player.pos.y, player.pos.side, player.color);
+                        fallenBlocks.push(block);
+                    }
+                });
+            });
+        }
+
+
+
+        function createBlock(x, y, side, color) {
+            const blockSize = 0.9;
+            const geometry = new THREE.BoxGeometry(blockSize, blockSize, 0.1);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const cube = new THREE.Mesh(geometry, material);
+
+            const halfHeight = height / 2;
+            const halfWidth = width / 2;
+            const halfDepth = depth / 2;
+
+            if (side === 0) { // Front
+                cube.position.set(x - halfWidth + 0.5, halfHeight - y, halfDepth);
+            } else if (side === 1) { // Right
+                cube.position.set(halfWidth, halfHeight - y, halfDepth - x - 0.5);
+                cube.rotation.y = -Math.PI / 2;
+            } else if (side === 2) { // Back
+                cube.position.set(halfWidth - x - 0.5, halfHeight - y, -halfDepth);
+                cube.rotation.y = Math.PI;
+            } else if (side === 3) { // Left
+                cube.position.set(-halfWidth, halfHeight - y, x - halfDepth + 0.5);
+                cube.rotation.y = Math.PI / 2;
+            }
+
+            // Сделать блок невидимым
+            cube.visible = false;
+
+            scene.add(cube);
+            return cube;
+        }
+
+
+        function playerMove(dir) {
+            player.pos.x += dir;
+            if (collide(arenas[player.pos.side], player)) {
+                player.pos.x -= dir;
+                player.pos.side = (player.pos.side + dir + sides) % sides;
+                if (collide(arenas[player.pos.side], player)) {
+                    player.pos.side = (player.pos.side - dir + sides) % sides;
+                } else {
+                    player.pos.x += dir;
+                    if (collide(arenas[player.pos.side], player)) {
+                        player.pos.x -= dir;
+                    }
+                }
+                rotateParallelepiped(dir);
+            }
+        }
+
+        function rotateParallelepiped(dir) {
+            const rotationAngle = Math.PI / 2; // 90 degrees
+            const rotationAxis = new THREE.Vector3(1, 0, 0); // Rotate around X axis
+            const rotateMatrix = new THREE.Matrix4().makeRotationAxis(rotationAxis, dir * rotationAngle);
+
+            parallelepiped.applyMatrix4(rotateMatrix);
+
+            // Adjust camera position after rotation
+            updateCameraPosition();
+        }
+
+
+
+        function playerDrop() {
+            player.pos.y++;
+            if (collide(arenas[player.pos.side], player)) {
+                player.pos.y--;
+                merge(arenas[player.pos.side], player);
+                playerReset();
+                arenaSweep();
+                updateScore();
+                updateDropInterval();
+            }
+            dropCounter = 0;
+        }
+
+        function playerRotate(dir) {
+            const pos = player.pos.x;
+            let offset = 1;
+            rotate(player.matrix, dir);
+            while (collide(arenas[player.pos.side], player)) {
+                player.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > player.matrix[0].length) {
+                    rotate(player.matrix, -dir);
+                    player.pos.x = pos;
+                    return;
+                }
+            }
+        }
+
+        function rotate(matrix, dir) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) {
+                    [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+                }
+            }
+
+            if (dir > 0) {
+                matrix.forEach(row => row.reverse());
+            } else {
+                matrix.reverse();
+            }
+        }
+
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 &&
+                        (arena[y + o.y] &&
+                            arena[y + o.y][x + o.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function playerReset() {
+            const pieces = 'ILJOTSZ';
+            player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+            player.pos.y = 0;
+            player.pos.x = (width / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        
+            if (collide(arenas[player.pos.side], player)) {
+                arenas.forEach(arena => arena.forEach(row => row.fill(0)));
+                fallenBlocks.forEach(block => scene.remove(block));
+                fallenBlocks = [];
+                player.score = 0;
+                updateScore();
+            }
+        }
+
+
+        function arenaSweep() {
+    let fullRows = [];
+
+    // Find all full rows
+    for (let y = height - 1; y >= 0; y--) {
+        let rowComplete = true;
+        for (let side = 0; side < sides; side++) {
+            for (let x = 0; x < width; x++) {
+                if (arenas[side][y][x] === 0) {
+                    rowComplete = false;
+                    break;
+                }
+            }
+            if (!rowComplete) break;
+        }
+        if (rowComplete) {
+            fullRows.push(y);
+        }
+    }
+
+    // Remove full rows
+    fullRows.forEach(row => {
+        for (let side = 0; side < sides; side++) {
+            arenas[side].splice(row, 1);
+            arenas[side].unshift(new Array(width).fill(0));
+        }
+
+        // Remove corresponding blocks from the scene
+        for (let i = fallenBlocks.length - 1; i >= 0; i--) {
+            const block = fallenBlocks[i];
+            if (Math.abs(block.position.y - (height / 2 - row)) < 0.5) {
+                scene.remove(block);
+                fallenBlocks.splice(i, 1);
+            }
+        }
+    });
+
+    player.score += fullRows.length * 100;
+}
+
+
+        function instantDrop() {
+            while (!collide(arenas[player.pos.side], player)) {
+                player.pos.y++;
+            }
+            player.pos.y--;
+            playerDrop();
+        }
+
+        function update(time = 0) {
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                playerDrop();
+            }
+
+            renderer.clear();
+            clearCurrentBlocks(); 
+            drawMatrix(arenas[player.pos.side], { x: 0, y: 0 }, 0x00ff00);
+            drawMatrix(player.matrix, player.pos, player.color);
+
+            updateCameraPosition();
+
+            renderer.render(scene, camera);
+
+            requestAnimationFrame(update);
+        }
+
+        function updateCameraPosition() {
+            const halfHeight = height / 2;
+            const halfWidth = width / 2;
+            const halfDepth = depth / 2;
+
+            if (player.pos.side === 0) { // Front
+                camera.position.set(0, 0, halfDepth + 30);
+                camera.lookAt(0, 0, halfDepth);
+            } else if (player.pos.side === 1) { // Right
+                camera.position.set(halfWidth + 30, 0, 0);
+                camera.lookAt(halfWidth, 0, 0);
+            } else if (player.pos.side === 2) { // Back
+                camera.position.set(0, 0, -halfDepth - 30);
+                camera.lookAt(0, 0, -halfDepth);
+            } else if (player.pos.side === 3) { // Left
+                camera.position.set(-halfWidth - 30, 0, 0);
+                camera.lookAt(-halfWidth, 0, 0);
+            }
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        function updateScore() {
+            document.getElementById('scoreValue').innerText = player.score;
+        }
+
+        function updateDropInterval() {
+            dropInterval = Math.max(100, 1000 - player.score);
+        }
+
+        function saveScore(username, score) {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            leaderboard.push({ username, score });
+            leaderboard.sort((a, b) => b.score - a.score);
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+        }
+
+        function updateScore() {
+            document.getElementById('scoreValue').innerText = player.score;
+            const username = 'TelegramUser'; // Replace with the actual username
+            saveScore(username, player.score);
+        }
+
+
+
+        init();
+    </script>
+</body>
+</html>
