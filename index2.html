@@ -537,18 +537,39 @@
 
         function saveScore(username, score) {
             const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-            leaderboard.push({ username, score });
+            // Check if the user already exists in the leaderboard
+            const userIndex = leaderboard.findIndex(entry => entry.username === username);
+            if (userIndex !== -1) {
+                // Update score if the new score is higher
+                if (leaderboard[userIndex].score < score) {
+                    leaderboard[userIndex].score = score;
+                }
+            } else {
+                // Add new user
+                leaderboard.push({ username, score });
+            }
             leaderboard.sort((a, b) => b.score - a.score);
             localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
         }
 
         function updateScore() {
             document.getElementById('scoreValue').innerText = player.score;
-            const username = 'TelegramUser'; // Replace with the actual username
             saveScore(username, player.score);
         }
 
+        function getQueryParams() {
+            const params = {};
+            const queryString = window.location.search.substring(1);
+            const vars = queryString.split("&");
+            vars.forEach((v) => {
+                const pair = v.split("=");
+                params[pair[0]] = decodeURIComponent(pair[1]);
+            });
+            return params;
+        }
 
+        const params = getQueryParams();
+        const username = params.username || "UnknownUser";
 
         init();
     </script>
